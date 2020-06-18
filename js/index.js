@@ -22,6 +22,8 @@ function preload() {
   //bullet
   this.load.image("bullet", "../assets/bullet.png");
   this.load.image("spaceMine", "../assets/space_mine.png");
+  this.load.audio("explode", ["../assets/sndExplode1.wav"]);
+  this.load.audio("laser", "../assets/sndLaser.wav");
 }
 
 var cursors;
@@ -29,8 +31,14 @@ var myShip;
 var bulletGroup;
 var spaceMines;
 var timer;
+var explodeSound;
+var laserSound;
+var score = 0;
+var scoreText;
 function create() {
   this.add.image(256, 256, "bg");
+  explodeSound = this.sound.add("explode");
+  laserSound = this.sound.add("laser");
 
   myShip = this.physics.add.image(256, 500, "meship");
   bulletGroup = this.physics.add.group({
@@ -44,7 +52,37 @@ function create() {
   bulletGroup.children.iterate((child) => (child.scale = 0.11));
   myShip.scale = 0.15;
   myShip.setCollideWorldBounds(true);
-  cursors = this.input.keyboard.createCursorKeys();
+  this.input.keyboard.on("keydown-LEFT", () => {
+    myShip.setVelocityX(-160);
+  });
+  this.input.keyboard.on("keydown-RIGHT", () => {
+    myShip.setVelocityY(0);
+    myShip.setVelocityX(160);
+  });
+  this.input.keyboard.on("keydown-UP", () => {
+    myShip.setVelocityY(-160);
+    myShip.setVelocityX(0);
+  });
+  this.input.keyboard.on("keydown-DOWN", () => {
+    myShip.setVelocityY(160);
+    myShip.setVelocityX(0);
+  });
+
+  this.input.keyboard.on("keyup", () => {
+    myShip.setVelocityY(0);
+    myShip.setVelocityX(0);
+  });
+  this.input.keyboard.on("keydown-SPACE", function (event) {
+    const bullet = bulletGroup.getFirstDead(false);
+    if (bullet) {
+      bullet.body.reset(myShip.x, myShip.y);
+      bullet.setActive(true);
+      bullet.setVisible(true);
+      bullet.enableBody();
+      bullet.setVelocityY(-300);
+      laserSound.play();
+    }
+  });
   timer = this.time.addEvent({
     delay: 100,
     callback: () => {
@@ -64,9 +102,15 @@ function create() {
 
   this.physics.add.collider(myShip, spaceMines, gameOver, null, this);
   this.physics.add.collider(bulletGroup, spaceMines, hitMine, null, this);
+  scoreText = this.add.text(16, 16, "score: 0", {
+    fontSize: "32px",
+    fill: "#fff",
+  });
 }
 
 function gameOver() {
+  explodeSound.play();
+
   this.physics.pause();
   this.physics.pause();
 
@@ -77,45 +121,21 @@ function gameOver() {
 }
 
 function hitMine(bullet, mine) {
+  explodeSound.play();
   mine.destroy();
   bullet.setActive(false);
   bullet.setVisible(false);
+  bullet.disableBody(false);
+  score++;
+  scoreText.setText(`Score: ${score}`);
 }
 
 function update() {
   bulletGroup.children.iterate((bullet) => {
     if (bullet.y <= -20) {
-      bullet.y = 500;
       bullet.setVisible(false);
       bullet.setActive(false);
       bullet.setVelocityY(0);
     }
   });
-  updateShipPositions();
-  if (cursors.space.isDown) {
-    const bullet = bulletGroup.getFirstDead(false);
-    if (bullet) {
-      bullet.body.reset(myShip.x, myShip.y);
-      bullet.setActive(true);
-      bullet.setVisible(true);
-      bullet.setVelocityY(-300);
-    }
-  }
-}
-
-function updateShipPositions() {
-  if (cursors.left.isDown) {
-    myShip.setVelocityX(-160);
-  } else if (cursors.right.isDown) {
-    myShip.setVelocityX(160);
-  } else if (cursors.up.isDown) {
-    myShip.setVelocityY(-160);
-    myShip.setVelocityX(0);
-  } else if (cursors.down.isDown && !myShip.body.touching.down) {
-    myShip.setVelocityY(160);
-    myShip.setVelocityX(0);
-  } else {
-    myShip.setVelocityY(0);
-    myShip.setVelocityX(0);
-  }
 }
