@@ -20,6 +20,8 @@ export class MainScene extends Phaser.Scene {
   }
 
   create() {
+    this.exploder = this.sound.add("explode");
+    this.laser = this.sound.add("laser");
     this.add.image(256, 256, "bg");
     this.player = new Ship(this, 100, 480, "ship");
     this.keyUP = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP);
@@ -39,6 +41,7 @@ export class MainScene extends Phaser.Scene {
     this.spaceMines = new SpaceMineGroup(this.physics.world, this);
     this.keySPACE.on("down", () => {
       this.bulletGroup.fire(this.player.x, this.player.y);
+      this.laser.play();
     });
     const timer = this.time.addEvent({
       delay: 100,
@@ -66,6 +69,7 @@ export class MainScene extends Phaser.Scene {
       this.spaceMines,
       (bullet, mine) => {
         this.bulletGroup.hit(bullet);
+        this.exploder.play();
         mine.destroy();
       },
       null,
